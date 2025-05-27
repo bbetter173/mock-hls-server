@@ -29,6 +29,16 @@ class MockHLSServer {
         this._segmentPrefix = segmentPrefix;
 
         const app = express();
+        
+        // Handle CORS preflight requests for proxy route
+        app.options(PROXY_PATH, (req, res) => {
+            res.set('Access-Control-Allow-Origin', '*');
+            res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+            res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Range');
+            res.set('Access-Control-Max-Age', '86400'); // 24 hours
+            res.status(204).end();
+        });
+        
         app.get(PROXY_PATH, (req, res, next) => {
             const url = req.query.url;
             if (!url) {
@@ -42,8 +52,13 @@ class MockHLSServer {
                 }
                 res.status(fetchRes.status);
                 res.set('Access-Control-Allow-Origin', '*');
+                res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+                res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Range');
+                res.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type');
                 res.set('content-type', fetchRes.headers.get('content-type'));
                 if (path.extname(url).indexOf('.m3u8') === 0) {
+                    // Set specific content type for m3u8 files to ensure proper handling
+                    res.set('Content-Type', 'application/vnd.apple.mpegurl');
                     this._logger.debug('Handling playlist request.', url);
                     res.send(this._handlePlaylistResponse(content, url));
                 } else {
@@ -64,7 +79,7 @@ class MockHLSServer {
             app.options('/segments/*', (req, res) => {
                 res.set('Access-Control-Allow-Origin', '*');
                 res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-                res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+                res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Range');
                 res.set('Access-Control-Max-Age', '86400'); // 24 hours
                 res.status(204).end();
             });
@@ -73,7 +88,8 @@ class MockHLSServer {
                 setHeaders: (res, path) => {
                     res.set('Access-Control-Allow-Origin', '*');
                     res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-                    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+                    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Range');
+                    res.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type');
                     // Set appropriate content type for common HLS file types
                     if (path.endsWith('.ts')) {
                         res.set('Content-Type', 'video/mp2t');
