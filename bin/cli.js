@@ -15,5 +15,30 @@ const optionDefinitions = [
     { name: 'segmentPrefix', type: String, alias: 'r' }
 ];
 
-const { host, port, windowSize, initialDuration, event, loop, logLevel, segmentsDir, segmentPrefix } = commandLineArgs(optionDefinitions);
-new MockHLSServer({ host, port, windowSize: event ? null : windowSize, initialDuration, loop, logLevel, segmentsDir, segmentPrefix });
+// Parse command line arguments
+const args = commandLineArgs(optionDefinitions);
+
+// Support environment variables for PM2 integration
+const config = {
+    host: process.env.HOST || args.host,
+    port: parseInt(process.env.PORT) || args.port,
+    windowSize: process.env.WINDOW_SIZE ? parseInt(process.env.WINDOW_SIZE) : args.windowSize,
+    initialDuration: process.env.INITIAL_DURATION ? parseInt(process.env.INITIAL_DURATION) : args.initialDuration,
+    event: process.env.EVENT === 'true' || args.event,
+    loop: process.env.LOOP === 'true' || args.loop,
+    logLevel: process.env.LOG_LEVEL || args.logLevel,
+    segmentsDir: process.env.SEGMENTS_DIR || args.segmentsDir,
+    segmentPrefix: process.env.SEGMENT_PREFIX || args.segmentPrefix
+};
+
+// Create server instance
+new MockHLSServer({ 
+    host: config.host, 
+    port: config.port, 
+    windowSize: config.event ? null : config.windowSize, 
+    initialDuration: config.initialDuration, 
+    loop: config.loop, 
+    logLevel: config.logLevel, 
+    segmentsDir: config.segmentsDir, 
+    segmentPrefix: config.segmentPrefix 
+});

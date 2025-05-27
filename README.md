@@ -34,6 +34,85 @@ Now start your stream at `http://localhost:8080/proxy?url=<stream url>`. The fir
 
 The source stream should be a VOD playlist that contains all the segments.
 
+# PM2 Support
+Mock HLS Server includes built-in PM2 ecosystem configuration for running multiple instances in production environments.
+
+## PM2 Scripts
+```bash
+# Setup and start PM2 (creates logs directory and starts all apps)
+npm run pm2:setup
+
+# Start in development mode (4 proxy instances + 2 segment server instances)
+npm run pm2:start
+
+# Start in production mode (optimized settings)
+npm run pm2:start:prod
+
+# Stop all instances
+npm run pm2:stop
+
+# Restart all instances
+npm run pm2:restart
+
+# Reload instances with zero downtime
+npm run pm2:reload
+
+# View logs
+npm run pm2:logs
+
+# Monitor instances
+npm run pm2:monit
+
+# Delete all instances
+npm run pm2:delete
+```
+
+## PM2 Configuration
+The ecosystem includes two pre-configured applications:
+
+### 1. mock-hls-server (Main Proxy Server)
+- **Instances**: 4 (development) / 4 (production)
+- **Port**: 8080
+- **Mode**: Cluster
+- **Features**: HLS proxy with EXT-X-PROGRAM-DATE-TIME support
+
+### 2. mock-hls-server-segments (Static File Server)
+- **Instances**: 2 (development) / 2 (production)
+- **Port**: 8081
+- **Mode**: Cluster
+- **Features**: Static segment serving with CORS support
+
+## Environment Variables
+PM2 configuration supports environment variables for easy customization:
+
+- `HOST`: Server host (default: localhost/0.0.0.0 for prod)
+- `PORT`: Server port (default: 8080/8081)
+- `WINDOW_SIZE`: Playlist window size in seconds
+- `INITIAL_DURATION`: Initial stream duration
+- `LOG_LEVEL`: Logging level (info/warn/error)
+- `SEGMENTS_DIR`: Directory for static file serving
+- `SEGMENT_PREFIX`: Custom prefix for segment URLs
+- `EVENT`: Set to 'true' for EVENT playlists
+- `LOOP`: Set to 'true' to loop playlists
+
+## Production Deployment
+```bash
+# Install PM2 globally
+npm install -g pm2
+
+# Setup log rotation
+pm2 install pm2-logrotate
+
+# Start in production mode
+npm run pm2:start:prod
+
+# Save PM2 configuration for auto-restart
+pm2 save
+
+# Setup PM2 to start on system boot
+pm2 startup
+```
+
 # Examples
 
 ## Basic Usage
@@ -58,3 +137,18 @@ To use a custom prefix for video segments instead of proxying them:
 mock-hls-server --segment-prefix "https://cdn.example.com/videos/"
 ```
 This will rewrite video segment URLs (`.ts`, `.m4s`, `.mp4`, `.m4v`) in playlists to use the custom prefix. For example, `segment001.ts` becomes `https://cdn.example.com/videos/segment001.ts`. Playlist files (`.m3u8`) continue to use the normal proxy behavior.
+
+## PM2 Multi-Instance Setup
+For high-availability production deployment:
+```bash
+# Start with PM2 in production mode
+npm run pm2:start:prod
+
+# Monitor performance
+npm run pm2:monit
+
+# View real-time logs
+npm run pm2:logs
+```
+
+This will start 4 proxy server instances on port 8080 and 2 static file server instances on port 8081, with automatic load balancing and process management.
