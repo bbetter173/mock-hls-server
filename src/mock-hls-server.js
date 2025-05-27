@@ -10,7 +10,7 @@ const PROXY_PATH = '/proxy';
 const PROXY_QUERY_PARAM = 'url';
 
 class MockHLSServer {
-    constructor({ host = 'localhost', port = 8080, windowSize = 10, initialDuration = 20, loop = false, logLevel = 'none', segmentsDir = null } = {}) {
+    constructor({ host = 'localhost', port = 8080, windowSize = 10, initialDuration = 20, loop = false, logLevel = 'none', segmentsDir = null, segmentPrefix = null } = {}) {
         this._logger = new winston.Logger({
             transports: logLevel !== 'none' ? [
                 new winston.transports.Console({
@@ -26,6 +26,7 @@ class MockHLSServer {
         this._windowSize = windowSize;
         this._loop = loop;
         this._segmentsDir = segmentsDir;
+        this._segmentPrefix = segmentPrefix;
 
         const app = express();
         app.get(PROXY_PATH, (req, res, next) => {
@@ -100,6 +101,11 @@ class MockHLSServer {
 
     _getTime() {
         return this._startTime ? (Date.now() - this._startTime) / 1000 : 0;
+    }
+
+    _isFragment(url) {
+        const ext = path.extname(url).toLowerCase();
+        return ['.ts', '.m4s', '.mp4', '.m4v'].includes(ext);
     }
 
     _handlePlaylistResponse(body, playlistUrl) {
@@ -213,6 +219,12 @@ class MockHLSServer {
     }
 
     _rewriteUrl(baseUrl, url, throughProxy = true) {
+        // Check if segmentPrefix is set and this is a fragment
+        if (this._segmentPrefix && this._isFragment(url)) {
+            return this._segmentPrefix + url;
+        }
+        
+        // Existing logic for non-fragments or when no prefix
         const absoluteURL = UrlToolkit.buildAbsoluteURL(baseUrl, url, { alwaysNormalize: true });
         return (
             throughProxy

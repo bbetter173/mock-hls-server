@@ -28,6 +28,7 @@ These are all the options:
 - `loop`: Loop the playlist.
 - `logLevel`
 - `segmentsDir` (alias: `-s`): Path to a directory to serve static files from under the `/segments/` path.
+- `segmentPrefix` (alias: `-p`): Static prefix to prepend to video segment URLs instead of proxying them.
 
 Now start your stream at `http://localhost:8080/proxy?url=<stream url>`. The first playlist request will start the stream. Variant playlists are supported, and the playlist URL's contained in them will be rewritten to route through the proxy.
 
@@ -50,3 +51,10 @@ mock-hls-server -s /path/to/segments
 This will serve files from `/path/to/segments` under the `/segments/` path. For example, a file at `/path/to/segments/segment001.ts` would be accessible at `http://localhost:8080/segments/segment001.ts`.
 
 The static file server automatically sets appropriate CORS headers and content types for HLS files (.ts and .m3u8).
+
+## Custom Segment Prefix
+To use a custom prefix for video segments instead of proxying them:
+```
+mock-hls-server --segment-prefix "https://cdn.example.com/videos/"
+```
+This will rewrite video segment URLs (`.ts`, `.m4s`, `.mp4`, `.m4v`) in playlists to use the custom prefix. For example, `segment001.ts` becomes `https://cdn.example.com/videos/segment001.ts`. Playlist files (`.m3u8`) continue to use the normal proxy behavior.

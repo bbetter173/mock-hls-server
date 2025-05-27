@@ -11,8 +11,9 @@ const optionDefinitions = [
     { name: 'event', type: Boolean, defaultValue: false },
     { name: 'loop', type: Boolean, defaultValue: false },
     { name: 'logLevel', type: String, defaultValue: 'info' },
-    { name: 'segmentsDir', type: String, alias: 's' }
+    { name: 'segmentsDir', type: String, alias: 's' },
+    { name: 'segmentPrefix', type: String, alias: 'r' }
 ];
 
-const { host, port, windowSize, initialDuration, event, loop, logLevel, segmentsDir } = commandLineArgs(optionDefinitions);
-new MockHLSServer({ host, port, windowSize: event ? null : windowSize, initialDuration, loop, logLevel, segmentsDir });
+const { host, port, windowSize, initialDuration, event, loop, logLevel, segmentsDir, segmentPrefix } = commandLineArgs(optionDefinitions);
+new MockHLSServer({ host, port, windowSize: event ? null : windowSize, initialDuration, loop, logLevel, segmentsDir, segmentPrefix });
