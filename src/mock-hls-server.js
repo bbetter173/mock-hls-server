@@ -10,7 +10,7 @@ const PROXY_PATH = '/proxy';
 const PROXY_QUERY_PARAM = 'url';
 
 class MockHLSServer {
-    constructor({ host = 'localhost', port = 8080, windowSize = 10, initialDuration = 20, loop = false, logLevel = 'none' } = {}) {
+    constructor({ host = 'localhost', port = 8080, windowSize = 10, initialDuration = 20, loop = false, logLevel = 'none', segmentsDir = null } = {}) {
         this._logger = new winston.Logger({
             transports: logLevel !== 'none' ? [
                 new winston.transports.Console({
@@ -25,6 +25,7 @@ class MockHLSServer {
         this._initialDuration = initialDuration;
         this._windowSize = windowSize;
         this._loop = loop;
+        this._segmentsDir = segmentsDir;
 
         const app = express();
         app.get(PROXY_PATH, (req, res, next) => {
@@ -53,6 +54,34 @@ class MockHLSServer {
                 next(e);
             });
         });
+
+        // Add static file serving for segments if segmentsDir is provided
+        if (this._segmentsDir) {
+            this._logger.info('Serving static files from ' + this._segmentsDir + ' at /segments/');
+            
+            // Handle CORS preflight requests for /segments
+            app.options('/segments/*', (req, res) => {
+                res.set('Access-Control-Allow-Origin', '*');
+                res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+                res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+                res.set('Access-Control-Max-Age', '86400'); // 24 hours
+                res.status(204).end();
+            });
+            
+            app.use('/segments', express.static(this._segmentsDir, {
+                setHeaders: (res, path) => {
+                    res.set('Access-Control-Allow-Origin', '*');
+                    res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+                    res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+                    // Set appropriate content type for common HLS file types
+                    if (path.endsWith('.ts')) {
+                        res.set('Content-Type', 'video/mp2t');
+                    } else if (path.endsWith('.m3u8')) {
+                        res.set('Content-Type', 'application/vnd.apple.mpegurl');
+                    }
+                }
+            }));
+        }
 
         this._server = app.listen(port, host, () => {
             this._logger.info('Started on ' + host + ':' + port + '!');
