@@ -178,14 +178,28 @@ class MockHLSServer {
                 visibleArea.push({ raw: '#EXT-X-ENDLIST' });
             }
         }
-        return [ ...header, ...visibleArea ].map((line) => {
-            if (line.metadata && line.metadata.type === 'url') {
-                return this._rewriteUrl(playlistUrl, line.raw, false);
-            } else if (line.raw[0] === '#') {
-                return this._rewriteTagUrl(line.raw, playlistUrl);
+        const result = [];
+        const allLines = [ ...header, ...visibleArea ];
+        
+        for (let i = 0; i < allLines.length; i++) {
+            const line = allLines[i];
+            
+            // For live playlists, add EXT-X-PROGRAM-DATE-TIME before each segment
+            if (windowSize !== null && line.metadata && line.metadata.type === 'url') {
+                const programDateTime = new Date(this._startTime + (line.metadata.time * 1000));
+                result.push('#EXT-X-PROGRAM-DATE-TIME:' + programDateTime.toISOString());
             }
-            return line.raw;
-        }).join('\r\n') + '\r\n';
+            
+            if (line.metadata && line.metadata.type === 'url') {
+                result.push(this._rewriteUrl(playlistUrl, line.raw, false));
+            } else if (line.raw[0] === '#') {
+                result.push(this._rewriteTagUrl(line.raw, playlistUrl));
+            } else {
+                result.push(line.raw);
+            }
+        }
+        
+        return result.join('\r\n') + '\r\n';
     }
 
     _buildVariantPlaylistResponse(parsedPlaylist, playlistUrl) {
